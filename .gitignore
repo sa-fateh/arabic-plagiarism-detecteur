@@ -1,0 +1,6 @@
+venv/
+best_model.pth
+data/
+*.csv
+__pycache__/
+*.pyc

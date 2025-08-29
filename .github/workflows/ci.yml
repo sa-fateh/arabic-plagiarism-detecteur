@@ -54,4 +54,8 @@ jobs:
             repo_id='fatehsaidi/arabic-plag-detecteur-model',
             token='${{ secrets.HF_TOKEN }}'
           )
+<<<<<<< HEAD
           "
+=======
+          "
+>>>>>>> 942b5623dfdb8bf265220ceb0f562f1174dd0b95

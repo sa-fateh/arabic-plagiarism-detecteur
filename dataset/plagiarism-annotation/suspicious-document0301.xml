@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document reference="suspicious-document0301.txt">
+<feature name="plagiarism" this_offset="1515" this_length="250" source_reference="source-document00223.txt" source_offset="43568" source_length="247" obfuscation="word shuffling" type="artificial"/>
+<feature name="plagiarism" this_offset="3221" this_length="267" source_reference="source-document00223.txt" source_offset="38318" source_length="263" obfuscation="word shuffling" type="artificial"/>
+<feature name="plagiarism" this_offset="4451" this_length="256" source_reference="source-document00221.txt" source_offset="1193" source_length="263" obfuscation="word shuffling" type="artificial"/>
+<feature name="plagiarism" this_offset="5490" this_length="1082" source_reference="source-document00223.txt" source_offset="41121" source_length="1068" obfuscation="word shuffling" type="artificial"/>
+<feature name="plagiarism" this_offset="8062" this_length="3258" source_reference="source-document00215.txt" source_offset="40552" source_length="3254" obfuscation="word shuffling" type="artificial"/>
+<feature name="plagiarism" this_offset="13157" this_length="1367" source_reference="source-document00227.txt" source_offset="122277" source_length="1362" obfuscation="word shuffling" type="artificial"/>
+<feature name="plagiarism" this_offset="14678" this_length="237" source_reference="source-document00221.txt" source_offset="964" source_length="228" obfuscation="word shuffling" type="artificial"/>
+<feature name="plagiarism" this_offset="18852" this_length="574" source_reference="source-document00221.txt" source_offset="9323" source_length="555" obfuscation="word shuffling" type="artificial"/>
+<feature name="plagiarism" this_offset="22128" this_length="1395" source_reference="source-document00227.txt" source_offset="131728" source_length="1392" obfuscation="word shuffling" type="artificial"/>
+<feature name="plagiarism" this_offset="25455" this_length="2057" source_reference="source-document00227.txt" source_offset="83913" source_length="1982" obfuscation="word shuffling" type="artificial"/>
+</document>

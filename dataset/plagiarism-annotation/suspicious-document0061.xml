@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document reference="suspicious-document0061.txt">
+<feature name="plagiarism" this_offset="1003" this_length="304" source_reference="source-document00137.txt" source_offset="6752" source_length="303" obfuscation="phrase shuffling" type="artificial"/>
+<feature name="plagiarism" this_offset="1569" this_length="1071" source_reference="source-document00139.txt" source_offset="14190" source_length="1070" obfuscation="phrase shuffling" type="artificial"/>
+<feature name="plagiarism" this_offset="8785" this_length="371" source_reference="source-document00133.txt" source_offset="10839" source_length="372" obfuscation="phrase shuffling" type="artificial"/>
+<feature name="plagiarism" this_offset="12742" this_length="190" source_reference="source-document00139.txt" source_offset="14414" source_length="189" obfuscation="phrase shuffling" type="artificial"/>
+<feature name="plagiarism" this_offset="15918" this_length="328" source_reference="source-document00133.txt" source_offset="5832" source_length="328" obfuscation="phrase shuffling" type="artificial"/>
+<feature name="plagiarism" this_offset="24004" this_length="193" source_reference="source-document00137.txt" source_offset="7056" source_length="192" obfuscation="phrase shuffling" type="artificial"/>
+</document>

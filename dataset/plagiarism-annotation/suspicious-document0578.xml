@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document reference="suspicious-document0578.txt">
+<feature name="plagiarism" this_offset="0" this_length="702" source_reference="source-document00147.txt" source_offset="3366" source_length="697" obfuscation="word shuffling" type="artificial"/>
+<feature name="plagiarism" this_offset="850" this_length="2175" source_reference="source-document00147.txt" source_offset="3312" source_length="2176" obfuscation="word shuffling" type="artificial"/>
+<feature name="plagiarism" this_offset="4787" this_length="1216" source_reference="source-document00167.txt" source_offset="0" source_length="1214" obfuscation="word shuffling" type="artificial"/>
+<feature name="plagiarism" this_offset="8932" this_length="197" source_reference="source-document00171.txt" source_offset="6980" source_length="198" obfuscation="word shuffling" type="artificial"/>
+<feature name="plagiarism" this_offset="9820" this_length="458" source_reference="source-document00147.txt" source_offset="0" source_length="456" obfuscation="word shuffling" type="artificial"/>
+<feature name="plagiarism" this_offset="10496" this_length="1019" source_reference="source-document00143.txt" source_offset="0" source_length="1018" obfuscation="word shuffling" type="artificial"/>
+<feature name="plagiarism" this_offset="11634" this_length="332" source_reference="source-document00159.txt" source_offset="463" source_length="338" obfuscation="word shuffling" type="artificial"/>
+</document>

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document reference="suspicious-document0296.txt">
+<feature name="plagiarism" this_offset="82" this_length="1080" source_reference="source-document00223.txt" source_offset="50435" source_length="1047" obfuscation="word shuffling" type="artificial"/>
+<feature name="plagiarism" this_offset="2108" this_length="244" source_reference="source-document00227.txt" source_offset="3603" source_length="243" obfuscation="word shuffling" type="artificial"/>
+<feature name="plagiarism" this_offset="3096" this_length="640" source_reference="source-document00227.txt" source_offset="107978" source_length="636" obfuscation="word shuffling" type="artificial"/>
+<feature name="plagiarism" this_offset="4095" this_length="1429" source_reference="source-document00227.txt" source_offset="82524" source_length="1388" obfuscation="word shuffling" type="artificial"/>
+<feature name="plagiarism" this_offset="6586" this_length="407" source_reference="source-document00227.txt" source_offset="112202" source_length="405" obfuscation="word shuffling" type="artificial"/>
+<feature name="plagiarism" this_offset="8211" this_length="664" source_reference="source-document00215.txt" source_offset="12337" source_length="663" obfuscation="word shuffling" type="artificial"/>
+<feature name="plagiarism" this_offset="9249" this_length="181" source_reference="source-document00227.txt" source_offset="108844" source_length="181" obfuscation="word shuffling" type="artificial"/>
+<feature name="plagiarism" this_offset="9493" this_length="1078" source_reference="source-document00227.txt" source_offset="9062" source_length="1069" obfuscation="word shuffling" type="artificial"/>
+<feature name="plagiarism" this_offset="10803" this_length="399" source_reference="source-document00219.txt" source_offset="378" source_length="400" obfuscation="word shuffling" type="artificial"/>
+<feature name="plagiarism" this_offset="11501" this_length="195" source_reference="source-document00227.txt" source_offset="120050" source_length="194" obfuscation="word shuffling" type="artificial"/>
+<feature name="plagiarism" this_offset="14354" this_length="455" source_reference="source-document00223.txt" source_offset="55483" source_length="414" obfuscation="word shuffling" type="artificial"/>
+<feature name="plagiarism" this_offset="14927" this_length="2036" source_reference="source-document00227.txt" source_offset="109297" source_length="2028" obfuscation="word shuffling" type="artificial"/>
+<feature name="plagiarism" this_offset="17408" this_length="253" source_reference="source-document00219.txt" source_offset="4245" source_length="249" obfuscation="word shuffling" type="artificial"/>
+<feature name="plagiarism" this_offset="19228" this_length="245" source_reference="source-document00223.txt" source_offset="6955" source_length="248" obfuscation="word shuffling" type="artificial"/>
+<feature name="plagiarism" this_offset="21192" this_length="307" source_reference="source-document00223.txt" source_offset="207" source_length="305" obfuscation="word shuffling" type="artificial"/>
+<feature name="plagiarism" this_offset="21500" this_length="1248" source_reference="source-document00227.txt" source_offset="2731" source_length="1238" obfuscation="word shuffling" type="artificial"/>
+<feature name="plagiarism" this_offset="23940" this_length="285" source_reference="source-document00227.txt" source_offset="64302" source_length="284" obfuscation="word shuffling" type="artificial"/>
+<feature name="plagiarism" this_offset="25746" this_length="220" source_reference="source-document00223.txt" source_offset="43127" source_length="220" obfuscation="word shuffling" type="artificial"/>
+<feature name="plagiarism" this_offset="26210" this_length="245" source_reference="source-document00223.txt" source_offset="10608" source_length="249" obfuscation="word shuffling" type="artificial"/>
+<feature name="plagiarism" this_offset="26979" this_length="964" source_reference="source-document00215.txt" source_offset="5669" source_length="961" obfuscation="word shuffling" type="artificial"/>
+<feature name="plagiarism" this_offset="28400" this_length="2019" source_reference="source-document00215.txt" source_offset="3646" source_length="2022" obfuscation="word shuffling" type="artificial"/>
+</document>

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document reference="suspicious-document0564.txt">
+<feature name="plagiarism" this_offset="1915" this_length="284" source_reference="source-document00217.txt" source_offset="9095" source_length="273" obfuscation="manual synonym substitution" type="simulated"/>
+<feature name="plagiarism" this_offset="5655" this_length="572" source_reference="source-document00215.txt" source_offset="53503" source_length="570" obfuscation="manual synonym substitution" type="simulated"/>
+<feature name="plagiarism" this_offset="8798" this_length="441" source_reference="source-document00215.txt" source_offset="29654" source_length="442" obfuscation="manual synonym substitution" type="simulated"/>
+<feature name="plagiarism" this_offset="11074" this_length="308" source_reference="source-document00223.txt" source_offset="9320" source_length="314" obfuscation="manual synonym substitution" type="simulated"/>
+<feature name="plagiarism" this_offset="11765" this_length="288" source_reference="source-document00219.txt" source_offset="1243" source_length="291" obfuscation="manual synonym substitution" type="simulated"/>
+</document>

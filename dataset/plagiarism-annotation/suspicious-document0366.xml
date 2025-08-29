@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document reference="suspicious-document0366.txt">
+<feature name="plagiarism" this_offset="70" this_length="316" source_reference="source-document00067.txt" source_offset="925" source_length="306" obfuscation="word shuffling" type="artificial"/>
+<feature name="plagiarism" this_offset="3711" this_length="3627" source_reference="source-document00073.txt" source_offset="12775" source_length="3533" obfuscation="word shuffling" type="artificial"/>
+<feature name="plagiarism" this_offset="13183" this_length="1160" source_reference="source-document00031.txt" source_offset="0" source_length="1161" obfuscation="word shuffling" type="artificial"/>
+<feature name="plagiarism" this_offset="14495" this_length="4517" source_reference="source-document00017.txt" source_offset="1832" source_length="4419" obfuscation="word shuffling" type="artificial"/>
+<feature name="plagiarism" this_offset="22515" this_length="3399" source_reference="source-document00049.txt" source_offset="5977" source_length="3355" obfuscation="word shuffling" type="artificial"/>
+<feature name="plagiarism" this_offset="26259" this_length="182" source_reference="source-document00034.txt" source_offset="4905" source_length="181" obfuscation="word shuffling" type="artificial"/>
+<feature name="plagiarism" this_offset="29377" this_length="243" source_reference="source-document00037.txt" source_offset="0" source_length="249" obfuscation="word shuffling" type="artificial"/>
+<feature name="plagiarism" this_offset="31644" this_length="1032" source_reference="source-document00065.txt" source_offset="9169" source_length="1009" obfuscation="word shuffling" type="artificial"/>
+<feature name="plagiarism" this_offset="33042" this_length="269" source_reference="source-document00043.txt" source_offset="206" source_length="266" obfuscation="word shuffling" type="artificial"/>
+<feature name="plagiarism" this_offset="35598" this_length="216" source_reference="source-document00021.txt" source_offset="7001" source_length="214" obfuscation="word shuffling" type="artificial"/>
+</document>

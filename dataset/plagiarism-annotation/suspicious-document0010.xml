@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document reference="suspicious-document0010.txt">
+<feature name="plagiarism" this_offset="438" this_length="211" source_reference="source-document00317.txt" source_offset="4099" source_length="211" obfuscation="none" type="artificial"/>
+<feature name="plagiarism" this_offset="1176" this_length="616" source_reference="source-document00313.txt" source_offset="17887" source_length="616" obfuscation="none" type="artificial"/>
+<feature name="plagiarism" this_offset="2326" this_length="1843" source_reference="source-document00321.txt" source_offset="8789" source_length="1843" obfuscation="none" type="artificial"/>
+<feature name="plagiarism" this_offset="4556" this_length="1801" source_reference="source-document00319.txt" source_offset="16610" source_length="1801" obfuscation="none" type="artificial"/>
+<feature name="plagiarism" this_offset="12092" this_length="194" source_reference="source-document00313.txt" source_offset="10935" source_length="194" obfuscation="none" type="artificial"/>
+<feature name="plagiarism" this_offset="18523" this_length="1500" source_reference="source-document00319.txt" source_offset="11090" source_length="1500" obfuscation="none" type="artificial"/>
+<feature name="plagiarism" this_offset="32255" this_length="507" source_reference="source-document00309.txt" source_offset="17071" source_length="507" obfuscation="none" type="artificial"/>
+<feature name="plagiarism" this_offset="37503" this_length="5685" source_reference="source-document00331.txt" source_offset="0" source_length="5685" obfuscation="none" type="artificial"/>
+</document>

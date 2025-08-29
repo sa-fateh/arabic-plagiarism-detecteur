@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document reference="suspicious-document0014.txt">
+<feature name="plagiarism" this_offset="9173" this_length="465" source_reference="source-document00223.txt" source_offset="6281" source_length="465" obfuscation="none" type="artificial"/>
+<feature name="plagiarism" this_offset="22244" this_length="228" source_reference="source-document00225.txt" source_offset="1132" source_length="228" obfuscation="none" type="artificial"/>
+<feature name="plagiarism" this_offset="30701" this_length="195" source_reference="source-document00227.txt" source_offset="118568" source_length="195" obfuscation="none" type="artificial"/>
+<feature name="plagiarism" this_offset="34043" this_length="1839" source_reference="source-document00219.txt" source_offset="1243" source_length="1839" obfuscation="none" type="artificial"/>
+<feature name="plagiarism" this_offset="37000" this_length="218" source_reference="source-document00223.txt" source_offset="33208" source_length="218" obfuscation="none" type="artificial"/>
+<feature name="plagiarism" this_offset="38720" this_length="265" source_reference="source-document00227.txt" source_offset="125961" source_length="265" obfuscation="none" type="artificial"/>
+<feature name="plagiarism" this_offset="52243" this_length="187" source_reference="source-document00223.txt" source_offset="71623" source_length="187" obfuscation="none" type="artificial"/>
+<feature name="plagiarism" this_offset="55369" this_length="1595" source_reference="source-document00227.txt" source_offset="99757" source_length="1595" obfuscation="none" type="artificial"/>
+<feature name="plagiarism" this_offset="57383" this_length="4566" source_reference="source-document00223.txt" source_offset="26638" source_length="4566" obfuscation="none" type="artificial"/>
+<feature name="plagiarism" this_offset="65844" this_length="1695" source_reference="source-document00215.txt" source_offset="16709" source_length="1695" obfuscation="none" type="artificial"/>
+<feature name="plagiarism" this_offset="67675" this_length="760" source_reference="source-document00223.txt" source_offset="65915" source_length="760" obfuscation="none" type="artificial"/>
+</document>

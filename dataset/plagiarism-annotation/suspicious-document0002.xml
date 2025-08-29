@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document reference="suspicious-document0002.txt">
+<feature name="plagiarism" this_offset="3272" this_length="531" source_reference="source-document00199.txt" source_offset="25358" source_length="531" obfuscation="none" type="artificial"/>
+<feature name="plagiarism" this_offset="4998" this_length="737" source_reference="source-document00197.txt" source_offset="42309" source_length="737" obfuscation="none" type="artificial"/>
+<feature name="plagiarism" this_offset="5736" this_length="326" source_reference="source-document00197.txt" source_offset="10269" source_length="326" obfuscation="none" type="artificial"/>
+<feature name="plagiarism" this_offset="7473" this_length="1139" source_reference="source-document00197.txt" source_offset="77060" source_length="1139" obfuscation="none" type="artificial"/>
+<feature name="plagiarism" this_offset="10804" this_length="1657" source_reference="source-document00197.txt" source_offset="17853" source_length="1657" obfuscation="none" type="artificial"/>
+<feature name="plagiarism" this_offset="12881" this_length="339" source_reference="source-document00197.txt" source_offset="4216" source_length="339" obfuscation="none" type="artificial"/>
+<feature name="plagiarism" this_offset="13493" this_length="400" source_reference="source-document00197.txt" source_offset="17853" source_length="400" obfuscation="none" type="artificial"/>
+<feature name="plagiarism" this_offset="13894" this_length="817" source_reference="source-document00197.txt" source_offset="73591" source_length="817" obfuscation="none" type="artificial"/>
+<feature name="plagiarism" this_offset="17005" this_length="368" source_reference="source-document00199.txt" source_offset="28453" source_length="368" obfuscation="none" type="artificial"/>
+<feature name="plagiarism" this_offset="17374" this_length="802" source_reference="source-document00197.txt" source_offset="33687" source_length="802" obfuscation="none" type="artificial"/>
+<feature name="plagiarism" this_offset="18561" this_length="328" source_reference="source-document00199.txt" source_offset="18563" source_length="328" obfuscation="none" type="artificial"/>
+<feature name="plagiarism" this_offset="20931" this_length="473" source_reference="source-document00199.txt" source_offset="22610" source_length="473" obfuscation="none" type="artificial"/>
+<feature name="plagiarism" this_offset="22597" this_length="329" source_reference="source-document00195.txt" source_offset="591" source_length="329" obfuscation="none" type="artificial"/>
+<feature name="plagiarism" this_offset="25208" this_length="1432" source_reference="source-document00197.txt" source_offset="74409" source_length="1432" obfuscation="none" type="artificial"/>
+<feature name="plagiarism" this_offset="31852" this_length="1207" source_reference="source-document00197.txt" source_offset="63678" source_length="1207" obfuscation="none" type="artificial"/>
+<feature name="plagiarism" this_offset="36161" this_length="1245" source_reference="source-document00197.txt" source_offset="62432" source_length="1245" obfuscation="none" type="artificial"/>
+<feature name="plagiarism" this_offset="37407" this_length="303" source_reference="source-document00197.txt" source_offset="70961" source_length="303" obfuscation="none" type="artificial"/>
+</document>

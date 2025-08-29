@@ -20,23 +20,24 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install -r requirements.txt
-          pip install huggingface_hub
+          pip install huggingface_hub gdown
+
       - name: Download dataset from Google Drive
         run: |
-          pip install gdown
           gdown --folder https://drive.google.com/drive/u/0/folders/16JHLtiSgbgQTZgiv-MLC_Ryn_mxVvVnN -O dataset
 
-
-      - name: Run training
+      - name: Train model
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
           python train.py \
-            --xml_dir plagiarism-annotation \
-            --susp_dir suspicious-documents \
-            --src_dir source-documents \
+            --xml_dir dataset/plagiarism-annotation \
+            --susp_dir dataset/suspicious-documents \
+            --src_dir dataset/source-documents \
             --out_dir data \
             --model_out best_model.pth \
             --batch_size 8 \
-            --epochs 5 \
+            --epochs 8 \
             --max_len 128 \
             --augment
 

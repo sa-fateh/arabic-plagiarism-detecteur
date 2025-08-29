@@ -21,11 +21,16 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
           pip install huggingface_hub
+      - name: Download dataset from Google Drive
+        run: |
+          pip install gdown
+          gdown --folder https://drive.google.com/drive/u/0/folders/16JHLtiSgbgQTZgiv-MLC_Ryn_mxVvVnN -O dataset
+
 
       - name: Run training
         run: |
           python train.py \
-            --xml_dir plagiarism-annotations \
+            --xml_dir plagiarism-annotation \
             --susp_dir suspicious-documents \
             --src_dir source-documents \
             --out_dir data \

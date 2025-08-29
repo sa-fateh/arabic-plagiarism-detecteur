@@ -21,10 +21,7 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
           pip install huggingface_hub gdown
-
-      - name: Download dataset from Google Drive
-        run: |
-          gdown --folder https://drive.google.com/drive/u/0/folders/16JHLtiSgbgQTZgiv-MLC_Ryn_mxVvVnN -O dataset
+   
 
       - name: Train model
         env:

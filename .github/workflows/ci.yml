@@ -1,46 +1,51 @@
-name: CI
+name: Train and Push Model
 
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+  workflow_dispatch:  # déclenchement manuel
 
 jobs:
-  build-and-test:
+  train-and-upload:
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        python-version: [3.8, 3.9, 3.10]
-
     steps:
-      - name: Checkout repository
+      - name: Checkout repo
         uses: actions/checkout@v3
 
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Cache pip
-        uses: actions/cache@v3
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
+          python-version: '3.9'
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
+          pip install --upgrade pip
           pip install -r requirements.txt
+          pip install huggingface_hub
 
-      - name: Lint with flake8
+      - name: Run training
         run: |
-          pip install flake8
-          flake8 .
+          python train.py \
+            --xml_dir plagiarism-annotations \
+            --susp_dir suspicious-documents \
+            --src_dir source-documents \
+            --out_dir data \
+            --model_out best_model.pth \
+            --batch_size 8 \
+            --epochs 5 \
+            --max_len 128 \
+            --augment
 
-      - name: Run unit tests
+      - name: Push to Hugging Face Hub
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          pytest --maxfail=1 --disable-warnings -q
+          python -c "
+          from huggingface_hub import HfApi
+          api = HfApi()
+          api.upload_file(
+            path_or_fileobj='best_model.pth',
+            path_in_repo='best_model.pth',
+            repo_id='TON_UTILISATEUR/arabic-plag-detector-model',
+            token='${{ secrets.HF_TOKEN }}'
+          )
+          "

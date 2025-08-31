@@ -34,7 +34,7 @@ jobs:
             --out_dir data \
             --model_out best_model.pth \
             --batch_size 8 \
-            --epochs 8 \
+            --epochs 5 \
             --max_len 128 \
             --augment
 

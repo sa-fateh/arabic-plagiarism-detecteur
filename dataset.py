@@ -1,15 +1,11 @@
+# dataset.py
+
 import pandas as pd
 import torch
 from torch.utils.data import Dataset
 from transformers import AutoTokenizer
 
 class ArabicPlagiarismCSVDataset(Dataset):
-    """
-    Lit train/val/test.csv et renvoie pour chaque item :
-      - s_ids, s_mask : BERT pour suspicious_text
-      - r_ids, r_mask : BERT pour source_text
-      - label         : float 0.0 ou 1.0
-    """
     def __init__(self, csv_path: str, max_len: int = 128):
         self.df = pd.read_csv(csv_path)
         self.tokenizer = AutoTokenizer.from_pretrained(

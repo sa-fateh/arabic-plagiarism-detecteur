@@ -1,5 +1,3 @@
-# dataset.py
-
 import pandas as pd
 import torch
 from torch.utils.data import Dataset
@@ -7,11 +5,10 @@ from transformers import AutoTokenizer
 
 class ArabicPlagiarismCSVDataset(Dataset):
     """
-    Charge un CSV de paires (suspicious_text, source_text, label) 
-    et renvoie pour chaque item :
-      - s_ids, s_mask : tenseurs BERT du texte suspect
-      - r_ids, r_mask : tenseurs BERT du texte source
-      - label         : tenseur float (0.0 ou 1.0)
+    Lit un CSV et renvoie pour chaque item :
+      - s_ids, s_mask : tenseurs BERT pour fragment suspect
+      - r_ids, r_mask : tenseurs BERT pour fragment source
+      - label         : float (0.0 ou 1.0)
     """
     def __init__(self, csv_path: str, max_len: int = 128):
         self.df = pd.read_csv(csv_path)
@@ -24,7 +21,7 @@ class ArabicPlagiarismCSVDataset(Dataset):
     def __getitem__(self, idx: int):
         row = self.df.iloc[idx]
 
-        # Tokenisation du fragment suspect
+        # Tokenisation du suspect
         se = self.tokenizer(
             row["suspicious_text"],
             truncation=True,
@@ -33,7 +30,7 @@ class ArabicPlagiarismCSVDataset(Dataset):
             return_tensors="pt"
         )
 
-        # Tokenisation du fragment source
+        # Tokenisation de la source
         re = self.tokenizer(
             row["source_text"],
             truncation=True,

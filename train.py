@@ -1,5 +1,3 @@
-# train.py
-
 import os
 import torch
 import torch.nn.functional as F
@@ -51,7 +49,7 @@ def main():
     parser.add_argument("--susp_dir",     required=True)
     parser.add_argument("--src_dir",      required=True)
     parser.add_argument("--neg_pool_dir", default=None,
-                        help="Directory of extra .txt files for negatives")
+                        help="Directory with extra .txt files for negatives")
     parser.add_argument("--out_dir",      required=True)
     parser.add_argument("--batch_size",   type=int,   default=16)
     parser.add_argument("--lr",           type=float, default=1e-3)
@@ -68,17 +66,17 @@ def main():
 
     # 1) BUILD DATASET
     paths = build_dataset(
-        xml_dir           = args.xml_dir,
-        susp_dir          = args.susp_dir,
-        src_dir           = args.src_dir,
-        out_dir           = args.out_dir,
-        neg_pool_dir      = args.neg_pool_dir,
-        neg_length        = args.neg_length,
-        neg_ratio         = args.neg_ratio,
-        slide_per_pos     = args.slide_per_pos,
-        noise_deletion_frac = args.noise_deletion_frac,
-        test_size         = args.test_size,
-        random_state      = args.random_state
+        xml_dir            = args.xml_dir,
+        susp_dir           = args.susp_dir,
+        src_dir            = args.src_dir,
+        out_dir            = args.out_dir,
+        neg_pool_dir       = args.neg_pool_dir,
+        neg_length         = args.neg_length,
+        neg_ratio          = args.neg_ratio,
+        slide_per_pos      = args.slide_per_pos,
+        noise_deletion_frac= args.noise_deletion_frac,
+        test_size          = args.test_size,
+        random_state       = args.random_state
     )
 
     # 2) DATALOADERS
@@ -87,11 +85,13 @@ def main():
     train_loader = DataLoader(ds_train, batch_size=args.batch_size, shuffle=True)
     val_loader   = DataLoader(ds_val,   batch_size=args.batch_size)
 
-    # 3) MODEL + OPTIMIZER
+    # 3) MODEL & OPTIMIZER
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = PlagiarismDetector().to(device)
     optimizer = torch.optim.AdamW(
-        model.parameters(), lr=args.lr, weight_decay=args.weight_decay
+        model.parameters(),
+        lr=args.lr,
+        weight_decay=args.weight_decay
     )
 
     best_loss = float("inf")
@@ -106,7 +106,7 @@ def main():
             best_loss = val_loss
             out_path = os.path.join(args.out_dir, "best_model.pth")
             torch.save(model.state_dict(), out_path)
-            print(f"→ Best model saved to {out_path}")
+            print(f"→ Best model saved: {out_path}")
 
 if __name__ == "__main__":
     main()

@@ -1,92 +1,47 @@
-# model.py
-
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 from transformers import AutoModel
 
 class PlagiarismDetector(nn.Module):
-    """
-    Modèle de détection de plagiat :
-      1) Encodage AraBERT
-      2) BiLSTM sur les embeddings
-      3) Soft-attention alignment
-      4) Construction de 4 représentations : sl, aligned, |sl−aligned|, sl*aligned
-      5) Concaténation + max-pooling → vecteur de similitude
-      6) MLP pour projection à 256 dimensions
-      7) Couche finale linéaire → logit (plagiat ou non)
-    """
-
-    def __init__(self,
-                 bert_model: str = "aubmindlab/bert-base-arabertv2",
-                 lstm_hidden: int = 128,
-                 dropout: float = 0.5):
+    def __init__(self, bert_model: str = "aubmindlab/bert-base-arabertv2",
+                 lstm_hidden: int = 128, lstm_layers: int = 2, dropout: float = 0.5):
         super().__init__()
-        # 1) Pré‐chargement d’AraBERT
         self.bert = AutoModel.from_pretrained(bert_model)
-        # 2) BiLSTM
         self.lstm = nn.LSTM(
             input_size=self.bert.config.hidden_size,
             hidden_size=lstm_hidden,
-            num_layers=1,
+            num_layers=lstm_layers,
+            bidirectional=True,
             batch_first=True,
-            bidirectional=True
+            dropout=dropout
         )
-        # 3) MLP sur la représentation de similitude
-        #    taille d’entrée = 4*(2*lstm_hidden)
-        self.sim_mlp = nn.Sequential(
-            nn.Linear(4 * lstm_hidden * 2, 512),
+        hid = 2 * lstm_hidden  # bidirectional
+        # classifier: [h_s; h_r; |h_s-h_r|; h_s*h_r]
+        feat_size = 4 * hid
+        self.fc = nn.Sequential(
+            nn.Linear(feat_size, hid),
             nn.ReLU(),
             nn.Dropout(dropout),
-            nn.Linear(512, 256),
-            nn.ReLU(),
-            nn.Dropout(dropout)
+            nn.Linear(hid, 1)
         )
-        # 4) Couche finale
-        self.classifier = nn.Linear(256, 1)
 
-    def forward(self,
-                s_ids: torch.Tensor,
-                s_mask: torch.Tensor,
-                r_ids: torch.Tensor,
-                r_mask: torch.Tensor) -> torch.Tensor:
-        """
-        Args:
-            s_ids   (N×L)   : input_ids du fragment suspect
-            s_mask  (N×L)   : attention_mask du suspect
-            r_ids   (N×L)   : input_ids du fragment source
-            r_mask  (N×L)   : attention_mask du source
+    def forward(self, s_ids, s_mask, r_ids, r_mask):
+        Hs = self.bert(input_ids=s_ids, attention_mask=s_mask).last_hidden_state
+        Hr = self.bert(input_ids=r_ids, attention_mask=r_mask).last_hidden_state
 
-        Returns:
-            logits (N×1) : score brut (avant sigmoid)
-        """
-        # 1) Encodage BERT
-        s_emb = self.bert(input_ids=s_ids, attention_mask=s_mask).last_hidden_state
-        r_emb = self.bert(input_ids=r_ids, attention_mask=r_mask).last_hidden_state
+        Hs, _ = self.lstm(Hs)  # (B, S, 2*lstm_hidden)
+        Hr, _ = self.lstm(Hr)
 
-        # 2) BiLSTM + masquage des paddings
-        s_lstm, _ = self.lstm(s_emb)  # (N, L, 2*H)
-        r_lstm, _ = self.lstm(r_emb)  # (N, L, 2*H)
-        s_lstm = s_lstm * s_mask.unsqueeze(-1)
-        r_lstm = r_lstm * r_mask.unsqueeze(-1)
+        # dot-product attention alignment
+        attn = torch.softmax(torch.bmm(Hs, Hr.transpose(1,2)), dim=-1)
+        Hr_aligned = torch.bmm(attn, Hr)
 
-        # 3) Soft‐attention alignment
-        #    A = softmax(s_lstm @ r_lstm^T) → (N, L, L)
-        A = F.softmax(torch.bmm(s_lstm, r_lstm.transpose(1, 2)), dim=-1)
-        #    aligned = A @ r_lstm → (N, L, 2*H)
-        aligned = torch.bmm(A, r_lstm)
+        # feature vector
+        diff = torch.abs(Hs - Hr_aligned)
+        prod = Hs * Hr_aligned
+        V = torch.cat([Hs, Hr_aligned, diff, prod], dim=-1)
 
-        # 4) Similarité : sl, aligned, |sl−aligned|, sl*aligned
-        diff = torch.abs(s_lstm - aligned)
-        prod = s_lstm * aligned
-        sims = torch.cat([s_lstm, aligned, diff, prod], dim=-1)  # (N, L, 4*2H)
-
-        # 5) Max‐pooling sur la dimension séquence
-        sim_vec = sims.max(dim=1).values  # (N, 4*2H)
-
-        # 6) MLP de réduction
-        features = self.sim_mlp(sim_vec)   # (N, 256)
-
-        # 7) Classifieur final
-        logits = self.classifier(features) # (N, 1)
+        # max-pool over sequence
+        Vp, _ = torch.max(V, dim=1)  # (B, feat_size)
+        logits = self.fc(Vp).squeeze(-1)
         return logits

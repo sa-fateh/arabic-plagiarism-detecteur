@@ -51,50 +51,47 @@ def main():
     parser.add_argument("--susp_dir",     required=True)
     parser.add_argument("--src_dir",      required=True)
     parser.add_argument("--neg_pool_dir", default=None,
-                        help="Dossier contenant les .txt pour négatifs cross-doc")
+                        help="Directory of extra .txt files for negatives")
     parser.add_argument("--out_dir",      required=True)
-    parser.add_argument("--model_out",    default=None,
-                        help="Chemin pour sauvegarder le modèle (override)")
     parser.add_argument("--batch_size",   type=int,   default=16)
     parser.add_argument("--lr",           type=float, default=1e-3)
     parser.add_argument("--weight_decay", type=float, default=0.0)
     parser.add_argument("--epochs",       type=int,   default=10)
     parser.add_argument("--max_len",      type=int,   default=128)
-    parser.add_argument("--patience",     type=int,   default=3)
-    parser.add_argument("--augment",      action="store_true")
     parser.add_argument("--neg_length",   type=int,   default=50)
     parser.add_argument("--neg_ratio",    type=float, default=1.0)
+    parser.add_argument("--slide_per_pos",type=int,   default=2)
+    parser.add_argument("--noise_deletion_frac", type=float, default=0.1)
     parser.add_argument("--test_size",    type=float, default=0.30)
     parser.add_argument("--random_state", type=int,   default=42)
     args = parser.parse_args()
 
-    # 1) Dataset build
+    # 1) BUILD DATASET
     paths = build_dataset(
-        xml_dir      = args.xml_dir,
-        susp_dir     = args.susp_dir,
-        src_dir      = args.src_dir,
-        out_dir      = args.out_dir,
-        neg_pool_dir = args.neg_pool_dir,
-        negate       = args.neg_length,      # si ta signature attend neg_length
-        neg_ratio    = args.neg_ratio,
-        test_size    = args.test_size,
-        random_state = args.random_state,
-        augment      = args.augment
+        xml_dir           = args.xml_dir,
+        susp_dir          = args.susp_dir,
+        src_dir           = args.src_dir,
+        out_dir           = args.out_dir,
+        neg_pool_dir      = args.neg_pool_dir,
+        neg_length        = args.neg_length,
+        neg_ratio         = args.neg_ratio,
+        slide_per_pos     = args.slide_per_pos,
+        noise_deletion_frac = args.noise_deletion_frac,
+        test_size         = args.test_size,
+        random_state      = args.random_state
     )
 
-    # 2) DataLoaders
+    # 2) DATALOADERS
     ds_train = ArabicPlagiarismCSVDataset(paths["train"], max_len=args.max_len)
     ds_val   = ArabicPlagiarismCSVDataset(paths["val"],   max_len=args.max_len)
     train_loader = DataLoader(ds_train, batch_size=args.batch_size, shuffle=True)
     val_loader   = DataLoader(ds_val,   batch_size=args.batch_size)
 
-    # 3) Model & Optimizer
+    # 3) MODEL + OPTIMIZER
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = PlagiarismDetector().to(device)
     optimizer = torch.optim.AdamW(
-        model.parameters(),
-        lr=args.lr,
-        weight_decay=args.weight_decay
+        model.parameters(), lr=args.lr, weight_decay=args.weight_decay
     )
 
     best_loss = float("inf")
@@ -107,9 +104,9 @@ def main():
 
         if val_loss < best_loss:
             best_loss = val_loss
-            out_path = args.model_out or os.path.join(args.out_dir, "best_model.pth")
+            out_path = os.path.join(args.out_dir, "best_model.pth")
             torch.save(model.state_dict(), out_path)
-            print(f"→ meilleur modèle sauvegardé: {out_path}")
+            print(f"→ Best model saved to {out_path}")
 
 if __name__ == "__main__":
     main()

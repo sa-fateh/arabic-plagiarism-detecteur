@@ -1,5 +1,3 @@
-# data.py
-
 import os
 import glob
 import random
@@ -25,38 +23,33 @@ def build_dataset(
     random_state: int = 42
 ):
     """
-    1) Extract all positives from XML
-    2) Build negative‐pool from src_dir + neg_pool_dir
-    3) Generate cross-doc negatives
-    4) Generate sliding-window hard negatives
-    5) Generate noise-deletion near-positives
-    6) Split train/val/test by suspicious_reference (no leak)
-    7) Save CSVs and return paths
+    1) EXTRACTION POSITIFS
+    2) Pool négatif = src_dir + neg_pool_dir
+    3) CROSS-DOC negatives
+    4) SLIDING-WINDOW hard negatives
+    5) NOISE-DELETION near positives
+    6) SPLIT train/val/test par document suspect
+    7) SAVE CSVs
     """
 
-    # 1) POSITIVES
-    records = []
-    ann = defaultdict(set)
+    # 1) POSITIFS
+    records, ann = [], defaultdict(set)
     xml_files = glob.glob(os.path.join(xml_dir, "*.xml"))
     print(f">>> {len(xml_files)} XML files found")
     for xml_fp in xml_files:
-        root      = ET.parse(xml_fp).getroot()
+        root = ET.parse(xml_fp).getroot()
         susp_name = os.path.basename(xml_fp).replace(".xml", ".txt")
         susp_full = extract_fragment(os.path.join(susp_dir, susp_name), 0, 10**7) or ""
         for feat in root.findall("feature"):
             src_ref = feat.get("source_reference")
             ann[susp_name].add(src_ref)
-
             to, tl = int(feat.get("this_offset")), int(feat.get("this_length"))
             so, sl = int(feat.get("source_offset")), int(feat.get("source_length"))
-
             s_frag   = susp_full[to:to+tl]
             src_full = extract_fragment(os.path.join(src_dir, src_ref), 0, 10**7) or ""
             r_frag   = src_full[so:so+sl]
-
             if not s_frag or not r_frag:
                 continue
-
             records.append({
                 "suspicious_reference": susp_name,
                 "source_reference":     src_ref,
@@ -93,7 +86,7 @@ def build_dataset(
             if len(src_full) < neg_length:
                 continue
             si = random.randint(0, len(susp_full) - neg_length)
-            ri = random.randint(0, len(src_full) - neg_length)
+            ri = random.randint(0, len(src_full)   - neg_length)
             negs.append({
                 "suspicious_reference": susp,
                 "source_reference":     os.path.basename(src_fp),
@@ -135,7 +128,7 @@ def build_dataset(
     df = pd.concat([df, pd.DataFrame(slide_negs)], ignore_index=True)
     print(f"→ +{len(slide_negs)} sliding-window negs → total {len(df)}")
 
-    # 5) NEAR-POSITIVE NOISE-DELETION
+    # 5) NOISE-DELETION NEAR-POSITIVES
     noise_negs = []
     for _, pos in df[df.label == 1].iterrows():
         words = pos.suspicious_text.split()
@@ -150,11 +143,10 @@ def build_dataset(
     df = pd.concat([df, pd.DataFrame(noise_negs)], ignore_index=True)
     print(f"→ +{len(noise_negs)} noise-deletion negs → total {len(df)}")
 
-    # 6) SPLIT TRAIN/VAL/TEST BY DOCUMENT SUSPECT (no leak)
+    # 6) SPLIT TRAIN/VAL/TEST PAR DOCUMENT SUSPECT (NO LEAK)
     gss   = GroupShuffleSplit(n_splits=1, test_size=test_size, random_state=random_state)
     tr_i, tmp_i = next(gss.split(df, groups=df["suspicious_reference"]))
     tr_df, tmp_df = df.iloc[tr_i], df.iloc[tmp_i]
-
     gss2  = GroupShuffleSplit(n_splits=1, test_size=0.5, random_state=random_state)
     v_i, te_i = next(gss2.split(tmp_df, groups=tmp_df["suspicious_reference"]))
     val_df, te_df = tmp_df.iloc[v_i], tmp_df.iloc[te_i]
@@ -162,7 +154,7 @@ def build_dataset(
     assert not set(tr_df.suspicious_reference) & set(val_df.suspicious_reference)
     assert not set(tr_df.suspicious_reference) & set(te_df.suspicious_reference)
 
-    # 7) SAVE CSVs
+    # 7) SAVE CSV
     os.makedirs(out_dir, exist_ok=True)
     paths = {}
     for name, subset in zip(["train","val","test"], [tr_df,val_df,te_df]):

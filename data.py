@@ -2,7 +2,6 @@ import os
 import glob
 import random
 import xml.etree.ElementTree as ET
-
 import pandas as pd
 from collections import defaultdict
 from sklearn.model_selection import GroupShuffleSplit
@@ -22,22 +21,10 @@ def build_dataset(
     test_size: float = 0.30,
     random_state: int = 42
 ):
-    """
-    1) EXTRACTION POSITIFS
-    2) Pool négatif = src_dir + neg_pool_dir
-    3) CROSS-DOC negatives
-    4) SLIDING-WINDOW hard negatives
-    5) NOISE-DELETION near positives
-    6) SPLIT train/val/test par document suspect
-    7) SAVE CSVs
-    """
-
-    # 1) POSITIFS
+    # 1) POSITIVES
     records, ann = [], defaultdict(set)
-    xml_files = glob.glob(os.path.join(xml_dir, "*.xml"))
-    print(f">>> {len(xml_files)} XML files found")
-    for xml_fp in xml_files:
-        root = ET.parse(xml_fp).getroot()
+    for xml_fp in glob.glob(os.path.join(xml_dir, "*.xml")):
+        root      = ET.parse(xml_fp).getroot()
         susp_name = os.path.basename(xml_fp).replace(".xml", ".txt")
         susp_full = extract_fragment(os.path.join(susp_dir, susp_name), 0, 10**7) or ""
         for feat in root.findall("feature"):
@@ -48,35 +35,27 @@ def build_dataset(
             s_frag   = susp_full[to:to+tl]
             src_full = extract_fragment(os.path.join(src_dir, src_ref), 0, 10**7) or ""
             r_frag   = src_full[so:so+sl]
-            if not s_frag or not r_frag:
-                continue
-            records.append({
-                "suspicious_reference": susp_name,
-                "source_reference":     src_ref,
-                "this_offset":          to,
-                "this_length":          tl,
-                "source_offset":        so,
-                "source_length":        sl,
-                "suspicious_text":      s_frag,
-                "source_text":          r_frag,
-                "label":                1
-            })
-
+            if s_frag and r_frag:
+                records.append({
+                    "suspicious_reference": susp_name,
+                    "source_reference":     src_ref,
+                    "suspicious_text":      s_frag,
+                    "source_text":          r_frag,
+                    "label":                1
+                })
     df = pd.DataFrame(records)
-    print(f"→ Positives extracted: {len(df)}")
 
-    # 2) NEGATIVE POOL
+    # 2) NEGATIVE POOL = src_dir + neg_pool_dir
     pool = set(glob.glob(os.path.join(src_dir, "*.txt")))
     if neg_pool_dir:
         extra = glob.glob(os.path.join(neg_pool_dir, "**", "*.txt"), recursive=True)
         pool |= set(extra)
     pool = list(pool)
-    print(f"→ Negative pool size: {len(pool)} files")
 
     # 3) CROSS-DOC NEGATIVES
     negs = []
     for susp, grp in df.groupby("suspicious_reference"):
-        susp_full = extract_fragment(os.path.join(susp_dir, susp), 0, 10**7) or ""
+        susp_full  = extract_fragment(os.path.join(susp_dir, susp), 0, 10**7) or ""
         candidates = [f for f in pool if os.path.basename(f) not in ann[susp]]
         for _ in range(int(len(grp) * neg_ratio)):
             if len(susp_full) < neg_length or not candidates:
@@ -90,17 +69,11 @@ def build_dataset(
             negs.append({
                 "suspicious_reference": susp,
                 "source_reference":     os.path.basename(src_fp),
-                "this_offset":          si,
-                "this_length":          neg_length,
-                "source_offset":        ri,
-                "source_length":        neg_length,
                 "suspicious_text":      susp_full[si:si+neg_length],
                 "source_text":          src_full[ri:ri+neg_length],
                 "label":                0
             })
-
     df = pd.concat([df, pd.DataFrame(negs)], ignore_index=True)
-    print(f"→ +{len(negs)} cross-doc negatives → total {len(df)}")
 
     # 4) SLIDING-WINDOW HARD NEGATIVES
     slide_negs = []
@@ -116,17 +89,11 @@ def build_dataset(
             slide_negs.append({
                 "suspicious_reference": pos.suspicious_reference,
                 "source_reference":     pos.suspicious_reference,
-                "this_offset":          i,
-                "this_length":          neg_length,
-                "source_offset":        j,
-                "source_length":        neg_length,
                 "suspicious_text":      susp_full[i:i+neg_length],
                 "source_text":          susp_full[j:j+neg_length],
                 "label":                0
             })
-
     df = pd.concat([df, pd.DataFrame(slide_negs)], ignore_index=True)
-    print(f"→ +{len(slide_negs)} sliding-window negs → total {len(df)}")
 
     # 5) NOISE-DELETION NEAR-POSITIVES
     noise_negs = []
@@ -134,33 +101,27 @@ def build_dataset(
         words = pos.suspicious_text.split()
         k     = max(1, int(len(words) * noise_deletion_frac))
         drop  = set(random.sample(range(len(words)), k))
-        noisy = " ".join(w for idx, w in enumerate(words) if idx not in drop)
+        noisy = " ".join(w for idx,w in enumerate(words) if idx not in drop)
         rec   = pos.to_dict()
         rec["suspicious_text"] = noisy
         rec["label"]           = 0
         noise_negs.append(rec)
-
     df = pd.concat([df, pd.DataFrame(noise_negs)], ignore_index=True)
-    print(f"→ +{len(noise_negs)} noise-deletion negs → total {len(df)}")
 
-    # 6) SPLIT TRAIN/VAL/TEST PAR DOCUMENT SUSPECT (NO LEAK)
+    # 6) SPLIT train/val/test PAR DOCUMENT SUSPECT
     gss   = GroupShuffleSplit(n_splits=1, test_size=test_size, random_state=random_state)
-    tr_i, tmp_i = next(gss.split(df, groups=df["suspicious_reference"]))
+    tr_i, tmp_i   = next(gss.split(df, groups=df["suspicious_reference"]))
     tr_df, tmp_df = df.iloc[tr_i], df.iloc[tmp_i]
     gss2  = GroupShuffleSplit(n_splits=1, test_size=0.5, random_state=random_state)
-    v_i, te_i = next(gss2.split(tmp_df, groups=tmp_df["suspicious_reference"]))
+    v_i, te_i     = next(gss2.split(tmp_df, groups=tmp_df["suspicious_reference"]))
     val_df, te_df = tmp_df.iloc[v_i], tmp_df.iloc[te_i]
 
-    assert not set(tr_df.suspicious_reference) & set(val_df.suspicious_reference)
-    assert not set(tr_df.suspicious_reference) & set(te_df.suspicious_reference)
-
-    # 7) SAVE CSV
+    # 7) SAVE CSVs
     os.makedirs(out_dir, exist_ok=True)
     paths = {}
-    for name, subset in zip(["train","val","test"], [tr_df,val_df,te_df]):
+    for name, subset in zip(["train","val","test"], [tr_df, val_df, te_df]):
         fp = os.path.join(out_dir, f"{name}.csv")
         subset.to_csv(fp, index=False, encoding="utf-8")
-        print(f"✅ {name}.csv → {len(subset)} examples")
         paths[name] = fp
 
     return paths

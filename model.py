@@ -7,7 +7,7 @@ class PlagiarismDetector(nn.Module):
         self,
         bert_model: str = "aubmindlab/bert-base-arabertv2",
         lstm_hidden: int = 128,
-        dropout: float = 0.7
+        dropout: float = 0.5
     ):
         super().__init__()
         self.bert = AutoModel.from_pretrained(bert_model)
@@ -18,11 +18,8 @@ class PlagiarismDetector(nn.Module):
             bidirectional=True,
             batch_first=True
         )
-
-        # Définir correctement la taille des couches
-        hid = 2 * lstm_hidden  # car BiLSTM
-        feat_size = 4 * hid    # concaténation : Hs, Hr, diff, prod
-
+        hid = 2 * lstm_hidden
+        feat_size = 4 * hid
         self.classifier = nn.Sequential(
             nn.Linear(feat_size, hid),
             nn.ReLU(),
@@ -44,6 +41,5 @@ class PlagiarismDetector(nn.Module):
         prod = Hs * Hr_aligned
         V = torch.cat([Hs, Hr_aligned, diff, prod], dim=-1)
         Vp, _ = V.max(dim=1)
-
         logits = self.classifier(Vp).squeeze(-1)
         return logits

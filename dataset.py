@@ -4,10 +4,6 @@ from torch.utils.data import Dataset
 from transformers import AutoTokenizer
 
 class ArabicPlagiarismCSVDataset(Dataset):
-    """
-    Lit les CSV générés par build_dataset,
-    remplace NaN, tokenise les paires pour le modèle.
-    """
     def __init__(self, csv_path: str, max_len: int = 128):
         df = pd.read_csv(csv_path, dtype=str)
         df["suspicious_text"] = df["suspicious_text"].fillna("")
@@ -22,24 +18,12 @@ class ArabicPlagiarismCSVDataset(Dataset):
         return len(self.df)
 
     def __getitem__(self, idx: int):
-        row   = self.df.iloc[idx]
+        row = self.df.iloc[idx]
         s_txt = row["suspicious_text"]
         r_txt = row["source_text"]
 
-        enc_s = self.tokenizer(
-            s_txt,
-            truncation=True,
-            padding="max_length",
-            max_length=self.max_len,
-            return_tensors="pt"
-        )
-        enc_r = self.tokenizer(
-            r_txt,
-            truncation=True,
-            padding="max_length",
-            max_length=self.max_len,
-            return_tensors="pt"
-        )
+        enc_s = self.tokenizer(s_txt, truncation=True, padding="max_length", max_length=self.max_len, return_tensors="pt")
+        enc_r = self.tokenizer(r_txt, truncation=True, padding="max_length", max_length=self.max_len, return_tensors="pt")
 
         return {
             "s_ids":  enc_s["input_ids"].squeeze(0),

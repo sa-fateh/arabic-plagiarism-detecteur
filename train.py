@@ -90,7 +90,6 @@ def main():
     ds_train = ArabicPlagiarismCSVDataset(paths["train"], max_len=args.max_len)
     ds_val   = ArabicPlagiarismCSVDataset(paths["val"],   max_len=args.max_len)
 
-    # Comptage des exemples
     n_pos = (ds_train.df["label"] == 1).sum()
     n_neg = (ds_train.df["label"] == 0).sum()
     print(f"  ✅ Train set: {len(ds_train)} examples → {n_pos} positives / {n_neg} negatives", flush=True)
@@ -124,7 +123,6 @@ def main():
     for epoch in range(1, args.epochs + 1):
         print(f"[Epoch {epoch}/{args.epochs}]", flush=True)
 
-        # Freeze/unfreeze BERT
         if epoch == 1:
             for param in model.bert.parameters():
                 param.requires_grad = False

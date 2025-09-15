@@ -1,5 +1,3 @@
-# train.py
-
 import os
 import time
 from argparse import ArgumentParser
@@ -20,10 +18,6 @@ from model import PlagiarismDetector
 
 
 def get_best_threshold(labels, probs, eps=1e-8):
-    """
-    Calcule le seuil qui maximise le F1 sur (labels, probs).
-    Retourne (seuil_optimal, f1_optimal).
-    """
     precisions, recalls, thresholds = precision_recall_curve(labels, probs)
     f1_scores = 2 * precisions * recalls / (precisions + recalls + eps)
     best_idx = f1_scores[:-1].argmax()
@@ -67,35 +61,25 @@ def eval_epoch(model, loader, device):
             all_labels.append(batch["label"])
     probs = torch.cat(all_probs).numpy()
     labels = torch.cat(all_labels).numpy()
-    preds = (probs > 0.5).astype(int)  # placeholder, on recalibre ensuite
-    return probs, labels, preds
+    return probs, labels
 
 
 def main():
     parser = ArgumentParser()
     parser.add_argument(
-        "--xml_dirs",
-        nargs="+",
-        required=True,
-        help="Liste des répertoires XML, un par corpus",
+        "--xml_dirs", nargs="+", required=True, help="Liste des répertoires XML"
     )
     parser.add_argument(
-        "--susp_dirs",
-        nargs="+",
-        required=True,
-        help="Liste des répertoires suspicious-documents",
+        "--susp_dirs", nargs="+", required=True, help="Liste des répertoires suspicious"
     )
     parser.add_argument(
-        "--src_dirs",
-        nargs="+",
-        required=True,
-        help="Liste des répertoires source-documents",
+        "--src_dirs", nargs="+", required=True, help="Liste des répertoires source"
     )
     parser.add_argument(
         "--neg_pool_dirs",
         nargs="*",
         default=None,
-        help="Liste (éventuellement vide) de répertoires pour le pool négatif",
+        help="Liste des répertoires pour pool négatif",
     )
     parser.add_argument("--out_dir", required=True)
     parser.add_argument("--batch_size", type=int, default=16)
@@ -108,7 +92,6 @@ def main():
     parser.add_argument("--noise_deletion_frac", type=float, default=0.1)
     parser.add_argument("--test_size", type=float, default=0.3)
     parser.add_argument("--random_state", type=int, default=42)
-
     args = parser.parse_args()
 
     print("→ BUILDING DATASET", flush=True)
@@ -125,6 +108,8 @@ def main():
         test_size=args.test_size,
         random_state=args.random_state,
     )
+    # DEBUG
+    assert paths is not None and "train" in paths, "build_dataset a retourné None ou pas de clé 'train'"
 
     print("→ INITIALIZING DATA LOADERS", flush=True)
     ds_train = ArabicPlagiarismCSVDataset(paths["train"], max_len=args.max_len)
@@ -132,18 +117,13 @@ def main():
 
     n_pos = (ds_train.df["label"] == 1).sum()
     n_neg = (ds_train.df["label"] == 0).sum()
-    print(
-        f"  ✅ Train set: {len(ds_train)} examples → {n_pos} positives / {n_neg} negatives",
-        flush=True,
-    )
+    print(f"  ✅ Train set: {len(ds_train)} examples → {n_pos} positives / {n_neg} negatives", flush=True)
 
     labels = ds_train.df["label"].values.astype(int)
     class_counts = torch.bincount(torch.tensor(labels))
     class_weights = 1.0 / class_counts.float()
     sample_weights = class_weights[torch.tensor(labels)]
-    sampler = WeightedRandomSampler(
-        sample_weights, num_samples=len(sample_weights), replacement=True
-    )
+    sampler = WeightedRandomSampler(sample_weights, num_samples=len(sample_weights), replacement=True)
 
     train_loader = DataLoader(ds_train, batch_size=args.batch_size, sampler=sampler)
     val_loader = DataLoader(ds_val, batch_size=args.batch_size)
@@ -180,9 +160,8 @@ def main():
 
         t0 = time.time()
         tr_loss = train_epoch(model, train_loader, optimizer, criterion, device)
-        probs, labels, _ = eval_epoch(model, val_loader, device)
+        probs, labels = eval_epoch(model, val_loader, device)
 
-        # Calibration du seuil
         best_thresh, best_f1_thresh = get_best_threshold(labels, probs)
         preds_opt = (probs > best_thresh).astype(int)
 
@@ -203,16 +182,10 @@ def main():
         if best_f1_thresh > best_f1:
             best_f1 = best_f1_thresh
             torch.save(
-                {
-                    "model_state": model.state_dict(),
-                    "threshold": best_thresh,
-                },
+                {"model_state": model.state_dict(), "threshold": best_thresh},
                 os.path.join(args.out_dir, "best_model.pth"),
             )
-            print(
-                f"→ Sauvé nouveau best (F1={best_f1:.3f}, thr={best_thresh:.3f})",
-                flush=True,
-            )
+            print(f"→ Sauvé nouveau best (F1={best_f1:.3f}, thr={best_thresh:.3f})", flush=True)
 
     print("→ TRAINING COMPLETE", flush=True)
 

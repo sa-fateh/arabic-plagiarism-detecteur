@@ -54,10 +54,15 @@ def eval_epoch(model, loader, device):
 
 def main():
     parser = ArgumentParser()
-    parser.add_argument("--xml_dir", required=True)
-    parser.add_argument("--susp_dir", required=True)
-    parser.add_argument("--src_dir", required=True)
-    parser.add_argument("--neg_pool_dir", default=None)
+    parser.add_argument("--xml_dirs", nargs="+", required=True)
+parser.add_argument("--susp_dirs", nargs="+", required=True)
+parser.add_argument("--src_dirs", nargs="+", required=True)
+parser.add_argument("--neg_pool_dirs", nargs="+", default=None)
+
+ #   parser.add_argument("--xml_dir", required=True)
+ #   parser.add_argument("--susp_dir", required=True)
+ #   parser.add_argument("--src_dir", required=True)
+ #   parser.add_argument("--neg_pool_dir", default=None)
     parser.add_argument("--out_dir", required=True)
     parser.add_argument("--batch_size", type=int, default=16)
     parser.add_argument("--lr", type=float, default=3e-5)
@@ -73,11 +78,16 @@ def main():
 
     print("→ BUILDING DATASET", flush=True)
     paths = build_dataset(
-        xml_dir=args.xml_dir,
-        susp_dir=args.susp_dir,
-        src_dir=args.src_dir,
+        xml_dirs=args.xml_dirs,
+    susp_dirs=args.susp_dirs,
+    src_dirs=args.src_dirs,
+    neg_pool_dirs=args.neg_pool_dirs,
+
+  #      xml_dir=args.xml_dir,
+   #     susp_dir=args.susp_dir,
+    #    src_dir=args.src_dir,
         out_dir=args.out_dir,
-        neg_pool_dir=args.neg_pool_dir,
+  #      neg_pool_dir=args.neg_pool_dir,
         neg_length=args.neg_length,
         neg_ratio=args.neg_ratio,
         slide_per_pos=args.slide_per_pos,

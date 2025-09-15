@@ -55,10 +55,9 @@ def eval_epoch(model, loader, device):
 def main():
     parser = ArgumentParser()
     parser.add_argument("--xml_dirs", nargs="+", required=True)
-parser.add_argument("--susp_dirs", nargs="+", required=True)
-parser.add_argument("--src_dirs", nargs="+", required=True)
-parser.add_argument("--neg_pool_dirs", nargs="+", default=None)
-
+    parser.add_argument("--susp_dirs", nargs="+", required=True)
+    parser.add_argument("--src_dirs", nargs="+", required=True)
+    parser.add_argument("--neg_pool_dirs", nargs="+", default=None)
  #   parser.add_argument("--xml_dir", required=True)
  #   parser.add_argument("--susp_dir", required=True)
  #   parser.add_argument("--src_dir", required=True)

@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from transformers import AutoModel
 
+
 class PlagiarismDetector(nn.Module):
     def __init__(self, bert_model="aubmindlab/bert-base-arabertv2", lstm_hidden=128, dropout=0.5):
         super().__init__()
@@ -35,9 +36,9 @@ class PlagiarismDetector(nn.Module):
 
         mean_s = S.mean(dim=1)
         mean_r = R_aligned.mean(dim=1)
-        diff   = (mean_s - mean_r).abs()
-        prod   = mean_s * mean_r
-        V      = torch.cat([mean_s, mean_r, diff, prod], dim=-1)
+        diff = (mean_s - mean_r).abs()
+        prod = mean_s * mean_r
+        V = torch.cat([mean_s, mean_r, diff, prod], dim=-1)
 
         logits = self.classifier(V).squeeze(-1)
         return logits

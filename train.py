@@ -1,21 +1,28 @@
 import os
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
-os.environ["ABSL_MIN_LOG_LEVEL"] = "3"
-
-import torch
 import time
 from argparse import ArgumentParser
+import torch
 from torch.utils.data import DataLoader, WeightedRandomSampler
 from transformers import get_linear_schedule_with_warmup
-from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
+from sklearn.metrics import accuracy_score, f1_score, roc_auc_score, precision_recall_curve
 
 from data import build_dataset
 from dataset import ArabicPlagiarismCSVDataset
 from model import PlagiarismDetector
 
+def get_best_threshold(labels, probs, eps=1e-8):
+    """
+    Calcule le seuil qui maximise le F1 sur (labels, probs).
+    Retourne (seuil_optimal, f1_optimal).
+    """
+    precisions, recalls, thresholds = precision_recall_curve(labels, probs)
+    f1_scores = 2 * precisions * recalls / (precisions + recalls + eps)
+    best_idx = f1_scores[:-1].argmax()
+    return thresholds[best_idx], f1_scores[best_idx]
+
 def train_epoch(model, loader, optimizer, criterion, device):
     model.train()
-    total_loss = 0
+    total_loss = 0.0
     for i, batch in enumerate(loader, 1):
         optimizer.zero_grad()
         logits = model(
@@ -49,44 +56,35 @@ def eval_epoch(model, loader, device):
             all_labels.append(batch["label"])
     probs  = torch.cat(all_probs).numpy()
     labels = torch.cat(all_labels).numpy()
-    preds  = (probs > 0.5).astype(int)
+    preds  = (probs > 0.5).astype(int)  # temporaire, on recalibrera après
     return probs, labels, preds
 
 def main():
     parser = ArgumentParser()
-    parser.add_argument("--xml_dirs", nargs="+", required=True)
-    parser.add_argument("--susp_dirs", nargs="+", required=True)
-    parser.add_argument("--src_dirs", nargs="+", required=True)
-    parser.add_argument("--neg_pool_dirs", nargs="+", default=None)
- #   parser.add_argument("--xml_dir", required=True)
- #   parser.add_argument("--susp_dir", required=True)
- #   parser.add_argument("--src_dir", required=True)
- #   parser.add_argument("--neg_pool_dir", default=None)
-    parser.add_argument("--out_dir", required=True)
-    parser.add_argument("--batch_size", type=int, default=16)
-    parser.add_argument("--lr", type=float, default=3e-5)
-    parser.add_argument("--epochs", type=int, default=10)
-    parser.add_argument("--max_len", type=int, default=128)
-    parser.add_argument("--neg_length", type=int, default=50)
-    parser.add_argument("--neg_ratio", type=float, default=1.0)
-    parser.add_argument("--slide_per_pos", type=int, default=2)
-    parser.add_argument("--noise_deletion_frac", type=float, default=0.1)
-    parser.add_argument("--test_size", type=float, default=0.30)
+    parser.add_argument("--xml_dir",    required=True)
+    parser.add_argument("--susp_dir",   required=True)
+    parser.add_argument("--src_dir",    required=True)
+    parser.add_argument("--neg_pool_dir", default=None)
+    parser.add_argument("--out_dir",    required=True)
+    parser.add_argument("--batch_size", type=int,   default=16)
+    parser.add_argument("--lr",         type=float, default=3e-5)
+    parser.add_argument("--epochs",     type=int,   default=10)
+    parser.add_argument("--max_len",    type=int,   default=128)
+    parser.add_argument("--neg_length", type=int,   default=50)
+    parser.add_argument("--neg_ratio",  type=float, default=2.0)
+    parser.add_argument("--slide_per_pos",      type=int,   default=3)
+    parser.add_argument("--noise_deletion_frac",type=float, default=0.1)
+    parser.add_argument("--test_size",  type=float, default=0.3)
     parser.add_argument("--random_state", type=int, default=42)
     args = parser.parse_args()
 
     print("→ BUILDING DATASET", flush=True)
     paths = build_dataset(
-        xml_dirs=args.xml_dirs,
-    susp_dirs=args.susp_dirs,
-    src_dirs=args.src_dirs,
-    neg_pool_dirs=args.neg_pool_dirs,
-
-  #      xml_dir=args.xml_dir,
-   #     susp_dir=args.susp_dir,
-    #    src_dir=args.src_dir,
+        xml_dir=args.xml_dir,
+        susp_dir=args.susp_dir,
+        src_dir=args.src_dir,
         out_dir=args.out_dir,
-  #      neg_pool_dir=args.neg_pool_dir,
+        neg_pool_dir=args.neg_pool_dir,
         neg_length=args.neg_length,
         neg_ratio=args.neg_ratio,
         slide_per_pos=args.slide_per_pos,
@@ -110,7 +108,7 @@ def main():
     sampler = WeightedRandomSampler(sample_weights, num_samples=len(sample_weights), replacement=True)
 
     train_loader = DataLoader(ds_train, batch_size=args.batch_size, sampler=sampler)
-    val_loader   = DataLoader(ds_val, batch_size=args.batch_size)
+    val_loader   = DataLoader(ds_val,   batch_size=args.batch_size)
 
     print("→ LOADING MODEL", flush=True)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -132,30 +130,45 @@ def main():
     for epoch in range(1, args.epochs + 1):
         print(f"[Epoch {epoch}/{args.epochs}]", flush=True)
 
+        # Freeze/unfreeze BERT
         if epoch == 1:
-            for param in model.bert.parameters():
-                param.requires_grad = False
+            for p in model.bert.parameters():
+                p.requires_grad = False
             print("  🔒 BERT frozen", flush=True)
         if epoch == 3:
-            for param in model.bert.parameters():
-                param.requires_grad = True
+            for p in model.bert.parameters():
+                p.requires_grad = True
             print("  🔓 BERT unfrozen", flush=True)
 
         t0 = time.time()
         tr_loss = train_epoch(model, train_loader, optimizer, criterion, device)
-        probs, labels, preds = eval_epoch(model, val_loader, device)
+        probs, labels, _ = eval_epoch(model, val_loader, device)
 
-        acc = accuracy_score(labels, preds)
-        f1  = f1_score(labels, preds)
-        auc = roc_auc_score(labels, probs)
-        print(f"  train_loss={tr_loss:.4f}  val_acc={acc:.3f}  val_f1={f1:.3f}  val_auc={auc:.3f}  time={(time.time()-t0):.1f}s", flush=True)
+        # Calibration du seuil
+        best_thresh, best_f1_thresh = get_best_threshold(labels, probs)
+        preds_opt = (probs > best_thresh).astype(int)
+
+        acc_opt = accuracy_score(labels, preds_opt)
+        auc     = roc_auc_score(labels, probs)
+
+        print(
+            f"  threshold={best_thresh:.3f}  "
+            f"train_loss={tr_loss:.4f}  "
+            f"val_acc={acc_opt:.3f}  "
+            f"val_f1={best_f1_thresh:.3f}  "
+            f"val_auc={auc:.3f}  "
+            f"time={(time.time()-t0):.1f}s",
+            flush=True
+        )
 
         scheduler.step()
-        if f1 > best_f1:
-            best_f1 = f1
-            out_fp = os.path.join(args.out_dir, "best_model.pth")
-            torch.save(model.state_dict(), out_fp)
-            print(f"→ Saved new best model (F1={f1:.3f})", flush=True)
+        if best_f1_thresh > best_f1:
+            best_f1 = best_f1_thresh
+            torch.save({
+                "model_state": model.state_dict(),
+                "threshold": best_thresh
+            }, os.path.join(args.out_dir, "best_model.pth"))
+            print(f"→ Sauvé nouveau best (F1={best_f1:.3f}, thr={best_thresh:.3f})", flush=True)
 
     print("→ TRAINING COMPLETE", flush=True)
 

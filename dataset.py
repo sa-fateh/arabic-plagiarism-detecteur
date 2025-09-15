@@ -1,5 +1,3 @@
-# dataset.py
-
 import pandas as pd
 import torch
 from torch.utils.data import Dataset
@@ -17,24 +15,20 @@ class ArabicPlagiarismCSVDataset(Dataset):
 
     def __getitem__(self, idx):
         row = self.df.iloc[idx]
-        s_text = row["suspicious_text"]
-        r_text = row["source_text"]
-
         s_enc = self.tokenizer(
-            s_text,
+            row["suspicious_text"],
             truncation=True,
             max_length=self.max_len,
             padding="max_length",
             return_tensors="pt",
         )
         r_enc = self.tokenizer(
-            r_text,
+            row["source_text"],
             truncation=True,
             max_length=self.max_len,
             padding="max_length",
             return_tensors="pt",
         )
-
         return {
             "s_ids": s_enc["input_ids"].squeeze(0),
             "s_mask": s_enc["attention_mask"].squeeze(0),

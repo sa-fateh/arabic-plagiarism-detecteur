@@ -1,10 +1,17 @@
+# model.py
+
 import torch
 import torch.nn as nn
 from transformers import AutoModel
 
 
 class PlagiarismDetector(nn.Module):
-    def __init__(self, bert_model="aubmindlab/bert-base-arabertv2", lstm_hidden=128, dropout=0.5):
+    def __init__(
+        self,
+        bert_model="aubmindlab/bert-base-arabertv2",
+        lstm_hidden=128,
+        dropout=0.5,
+    ):
         super().__init__()
         self.bert = AutoModel.from_pretrained(bert_model)
         self.lstm = nn.LSTM(
@@ -12,7 +19,7 @@ class PlagiarismDetector(nn.Module):
             hidden_size=lstm_hidden,
             num_layers=1,
             bidirectional=True,
-            batch_first=True
+            batch_first=True,
         )
         hid = 2 * lstm_hidden
         feat_size = 4 * hid
@@ -20,7 +27,7 @@ class PlagiarismDetector(nn.Module):
             nn.Linear(feat_size, hid),
             nn.ReLU(),
             nn.Dropout(dropout),
-            nn.Linear(hid, 1)
+            nn.Linear(hid, 1),
         )
 
     def forward(self, s_ids, s_mask, r_ids, r_mask):
@@ -36,9 +43,9 @@ class PlagiarismDetector(nn.Module):
 
         mean_s = S.mean(dim=1)
         mean_r = R_aligned.mean(dim=1)
-        diff = (mean_s - mean_r).abs()
-        prod = mean_s * mean_r
-        V = torch.cat([mean_s, mean_r, diff, prod], dim=-1)
+        diff   = (mean_s - mean_r).abs()
+        prod   = mean_s * mean_r
+        V      = torch.cat([mean_s, mean_r, diff, prod], dim=-1)
 
         logits = self.classifier(V).squeeze(-1)
         return logits

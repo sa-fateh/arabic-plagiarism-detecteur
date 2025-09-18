@@ -4,14 +4,15 @@ import os
 import time
 from argparse import ArgumentParser
 
+import pandas as pd
 import torch
 from torch.utils.data import DataLoader, WeightedRandomSampler
 from transformers import get_linear_schedule_with_warmup
 from sklearn.metrics import (
     accuracy_score,
-    f1_score,
     roc_auc_score,
     precision_recall_curve,
+    f1_score,
 )
 
 from data import build_dataset
@@ -20,10 +21,6 @@ from model import PlagiarismDetector
 
 
 def get_best_threshold(labels, probs, eps=1e-8):
-    """
-    Calcule le seuil qui maximise le F1 sur (labels, probs).
-    Retourne (seuil_optimal, f1_optimal).
-    """
     precisions, recalls, thresholds = precision_recall_curve(labels, probs)
     f1_scores = 2 * precisions * recalls / (precisions + recalls + eps)
     best_idx = f1_scores[:-1].argmax()
@@ -76,47 +73,34 @@ def main():
         "--data_dir",
         type=str,
         default=None,
-        help="Répertoire contenant train.csv, val.csv, test.csv. Si spécifié, on saute build_dataset."
+        help="Répertoire contenant train.csv, val.csv, test.csv. Si spécifié, skip build_dataset"
     )
     parser.add_argument(
-        "--xml_dirs",
-        nargs="+",
-        default=None,
-        help="Liste des répertoires XML, un par corpus (requis si --data_dir non fourni)."
+        "--xml_dirs", nargs="+", default=None, help="Liste des XML dirs si data_dir non fourni"
     )
     parser.add_argument(
-        "--susp_dirs",
-        nargs="+",
-        default=None,
-        help="Liste des répertoires suspicious-documents (requis si --data_dir non fourni)."
+        "--susp_dirs", nargs="+", default=None, help="Liste des suspicious dirs si data_dir non fourni"
     )
     parser.add_argument(
-        "--src_dirs",
-        nargs="+",
-        default=None,
-        help="Liste des répertoires source-documents (requis si --data_dir non fourni)."
+        "--src_dirs", nargs="+", default=None, help="Liste des source dirs si data_dir non fourni"
     )
     parser.add_argument(
-        "--neg_pool_dirs",
-        nargs="*",
-        default=None,
-        help="Liste des répertoires pour le pool négatif."
+        "--neg_pool_dirs", nargs="*", default=None, help="Liste des neg pool dirs"
     )
-    parser.add_argument("--out_dir",    required=True, help="Répertoire de sortie pour les CSV et le modèle.")
-    parser.add_argument("--batch_size", type=int,   default=16)
-    parser.add_argument("--lr",         type=float, default=3e-5)
-    parser.add_argument("--epochs",     type=int,   default=10)
-    parser.add_argument("--max_len",    type=int,   default=128)
-    parser.add_argument("--neg_length", type=int,   default=50)
-    parser.add_argument("--neg_ratio",  type=float, default=2.0)
-    parser.add_argument("--slide_per_pos",      type=int,   default=3)
-    parser.add_argument("--noise_deletion_frac",type=float, default=0.1)
-    parser.add_argument("--test_size",  type=float, default=0.3)
+    parser.add_argument("--out_dir", required=True, help="Répertoire de sortie")
+    parser.add_argument("--batch_size", type=int, default=16)
+    parser.add_argument("--lr", type=float, default=3e-5)
+    parser.add_argument("--epochs", type=int, default=15)
+    parser.add_argument("--max_len", type=int, default=128)
+    parser.add_argument("--neg_length", type=int, default=50)
+    parser.add_argument("--neg_ratio", type=float, default=2.0)
+    parser.add_argument("--slide_per_pos", type=int, default=3)
+    parser.add_argument("--noise_deletion_frac", type=float, default=0.1)
+    parser.add_argument("--test_size", type=float, default=0.3)
     parser.add_argument("--random_state", type=int, default=42)
 
     args = parser.parse_args()
 
-    # Charger les CSV existants si data_dir est fourni
     if args.data_dir:
         paths = {
             "train": os.path.join(args.data_dir, "train.csv"),
@@ -124,12 +108,9 @@ def main():
             "test":  os.path.join(args.data_dir, "test.csv"),
         }
         print(f"→ CHARGEMENT DIRECT DES CSV depuis '{args.data_dir}'", flush=True)
-
     else:
-        # Vérification des arguments requis pour build_dataset
-        if not args.xml_dirs or not args.susp_dirs or not args.src_dirs:
-            parser.error("Lorsque --data_dir n'est pas défini, "
-                         "--xml_dirs, --susp_dirs et --src_dirs sont obligatoires.")
+        if not (args.xml_dirs and args.susp_dirs and args.src_dirs):
+            parser.error("Si --data_dir non fourni, --xml_dirs, --susp_dirs et --src_dirs sont requis.")
         print("→ BUILDING DATASET", flush=True)
         paths = build_dataset(
             xml_dirs=args.xml_dirs,
@@ -145,7 +126,6 @@ def main():
             random_state=args.random_state,
         )
 
-    # Initialisation des DataLoaders
     print("→ INITIALIZING DATA LOADERS", flush=True)
     ds_train = ArabicPlagiarismCSVDataset(paths["train"], max_len=args.max_len)
     ds_val   = ArabicPlagiarismCSVDataset(paths["val"],   max_len=args.max_len)
@@ -163,30 +143,26 @@ def main():
     train_loader = DataLoader(ds_train, batch_size=args.batch_size, sampler=sampler)
     val_loader   = DataLoader(ds_val,   batch_size=args.batch_size)
 
-    # Chargement du modèle
     print("→ LOADING MODEL", flush=True)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model  = PlagiarismDetector().to(device)
     print(f"  Using device: {device}", flush=True)
 
-    # Optimizer, scheduler, criterion
     print("→ SETTING UP OPTIMIZER & SCHEDULER", flush=True)
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=0.01)
     total_steps = len(train_loader) * args.epochs
     scheduler = get_linear_schedule_with_warmup(
         optimizer,
         num_warmup_steps=int(0.1 * total_steps),
-        num_training_steps=total_steps
+        num_training_steps=total_steps,
     )
     pos_weight = class_counts[0] / class_counts[1]
     criterion  = torch.nn.BCEWithLogitsLoss(pos_weight=pos_weight.to(device))
 
-    # Boucle d'entraînement
     best_f1 = 0.0
     for epoch in range(1, args.epochs + 1):
         print(f"[Epoch {epoch}/{args.epochs}]", flush=True)
 
-        # Freeze/unfreeze BERT
         if epoch == 1:
             for p in model.bert.parameters():
                 p.requires_grad = False
@@ -200,7 +176,6 @@ def main():
         tr_loss = train_epoch(model, train_loader, optimizer, criterion, device)
         probs, labels = eval_epoch(model, val_loader, device)
 
-        # Calibration du seuil
         best_thresh, best_f1_thresh = get_best_threshold(labels, probs)
         preds_opt = (probs > best_thresh).astype(int)
 
@@ -214,15 +189,25 @@ def main():
             f"val_f1={best_f1_thresh:.3f}  "
             f"val_auc={auc:.3f}  "
             f"time={(time.time() - t0):.1f}s",
-            flush=True
+            flush=True,
         )
+
+        # --- Sauvegarde des FP / FN de la validation ---
+        df_val = ds_val.df.copy()
+        df_val["prob"]  = probs
+        df_val["pred"]  = preds_opt
+        df_val["label"] = labels
+        fp_df = df_val[(df_val["pred"] == 1) & (df_val["label"] == 0)]
+        fn_df = df_val[(df_val["pred"] == 0) & (df_val["label"] == 1)]
+        fp_df.to_csv(os.path.join(args.out_dir, f"fp_epoch{epoch}.csv"), index=False, encoding="utf-8")
+        fn_df.to_csv(os.path.join(args.out_dir, f"fn_epoch{epoch}.csv"), index=False, encoding="utf-8")
 
         scheduler.step()
         if best_f1_thresh > best_f1:
             best_f1 = best_f1_thresh
             torch.save(
                 {"model_state": model.state_dict(), "threshold": best_thresh},
-                os.path.join(args.out_dir, "best_model.pth")
+                os.path.join(args.out_dir, "best_model.pth"),
             )
             print(f"→ Sauvé nouveau best (F1={best_f1:.3f}, thr={best_thresh:.3f})", flush=True)
 

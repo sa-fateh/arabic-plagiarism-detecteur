@@ -7,36 +7,37 @@ from transformers import AutoTokenizer
 
 
 class ArabicPlagiarismCSVDataset(Dataset):
-    """
-    Dataset for Arabic plagiarism detection.
-    Lit un CSV avec colonnes :
-      - suspicious_text
-      - source_text
-      - label
-    et renvoie des batchs tokenisés pour BERT.
-    """
-
     def __init__(
         self,
         csv_path: str,
         max_len: int = 128,
         bert_model: str = "aubmindlab/bert-base-arabertv2",
     ):
-        # 1) Lecture du CSV en str et remplissage des valeurs manquantes
+        # 1) Load and clean CSV
         self.df = pd.read_csv(csv_path, dtype=str).fillna("")
 
-        # 2) Conversion de la colonne 'label' en int (0 ou 1)
-        self.df["label"] = (
+        # 2) Convert columns to correct dtypes
+        self.df["label"]        = (
             pd.to_numeric(self.df["label"], errors="coerce")
             .fillna(0)
             .astype(int)
         )
+        self.df["lex_overlap"]  = (
+            pd.to_numeric(self.df["lex_overlap"], errors="coerce")
+            .fillna(0.0)
+            .astype(float)
+        )
+        self.df["tfidf_sim"]    = (
+            pd.to_numeric(self.df["tfidf_sim"], errors="coerce")
+            .fillna(0.0)
+            .astype(float)
+        )
 
-        # 3) Assurer que les textes sont bien des str
+        # 3) Ensure text columns are str
         self.df["suspicious_text"] = self.df["suspicious_text"].astype(str)
         self.df["source_text"]     = self.df["source_text"].astype(str)
 
-        # 4) Initialisation du tokenizer
+        # 4) Tokenizer and length
         self.tokenizer = AutoTokenizer.from_pretrained(bert_model)
         self.max_len   = max_len
 
@@ -46,20 +47,15 @@ class ArabicPlagiarismCSVDataset(Dataset):
     def __getitem__(self, idx: int) -> dict:
         row = self.df.iloc[idx]
 
-        # Textes à encoder
-        s_text = row["suspicious_text"]
-        r_text = row["source_text"]
-
-        # Tokenization avec padding et truncation
         s_enc = self.tokenizer(
-            s_text,
+            row["suspicious_text"],
             truncation=True,
             padding="max_length",
             max_length=self.max_len,
             return_tensors="pt",
         )
         r_enc = self.tokenizer(
-            r_text,
+            row["source_text"],
             truncation=True,
             padding="max_length",
             max_length=self.max_len,
@@ -71,5 +67,7 @@ class ArabicPlagiarismCSVDataset(Dataset):
             "s_mask": s_enc["attention_mask"].squeeze(0),
             "r_ids":  r_enc["input_ids"].squeeze(0),
             "r_mask": r_enc["attention_mask"].squeeze(0),
-            "label":  torch.tensor(row["label"], dtype=torch.float),
+            "lex":    torch.tensor(row["lex_overlap"], dtype=torch.float),
+            "tfidf":  torch.tensor(row["tfidf_sim"],   dtype=torch.float),
+            "label":  torch.tensor(row["label"],       dtype=torch.float),
         }

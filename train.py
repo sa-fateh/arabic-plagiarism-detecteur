@@ -4,16 +4,12 @@ import os
 import time
 from argparse import ArgumentParser
 
-import pandas as pd
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
 from torch.utils.data import DataLoader, WeightedRandomSampler
 from transformers import get_linear_schedule_with_warmup
-from sklearn.metrics import (
-    accuracy_score,
-    roc_auc_score,
-    precision_recall_curve,
-    f1_score,
-)
+from sklearn.metrics import accuracy_score, roc_auc_score, precision_recall_curve
 
 from data import build_dataset
 from dataset import ArabicPlagiarismCSVDataset
@@ -27,6 +23,21 @@ def get_best_threshold(labels, probs, eps=1e-8):
     return thresholds[best_idx], f1_scores[best_idx]
 
 
+class FocalLoss(nn.Module):
+    def __init__(self, alpha=1.0, gamma=2.0, reduction="mean"):
+        super().__init__()
+        self.alpha = alpha
+        self.gamma = gamma
+        self.reduction = reduction
+
+    def forward(self, logits, labels):
+        p = torch.sigmoid(logits)
+        ce = F.binary_cross_entropy_with_logits(logits, labels, reduction="none")
+        pt = p * labels + (1 - p) * (1 - labels)
+        loss = self.alpha * (1 - pt) ** self.gamma * ce
+        return loss.mean() if self.reduction == "mean" else loss.sum()
+
+
 def train_epoch(model, loader, optimizer, criterion, device):
     model.train()
     total_loss = 0.0
@@ -37,6 +48,8 @@ def train_epoch(model, loader, optimizer, criterion, device):
             batch["s_mask"].to(device),
             batch["r_ids"].to(device),
             batch["r_mask"].to(device),
+            batch["lex"].to(device),
+            batch["tfidf"].to(device),
         )
         loss = criterion(logits, batch["label"].to(device))
         loss.backward()
@@ -58,6 +71,8 @@ def eval_epoch(model, loader, device):
                 batch["s_mask"].to(device),
                 batch["r_ids"].to(device),
                 batch["r_mask"].to(device),
+                batch["lex"].to(device),
+                batch["tfidf"].to(device),
             )
             probs = torch.sigmoid(logits).cpu()
             all_probs.append(probs)
@@ -73,24 +88,18 @@ def main():
         "--data_dir",
         type=str,
         default=None,
-        help="Répertoire contenant train.csv, val.csv, test.csv. Si spécifié, skip build_dataset"
+        help="If set, load train/val/test CSVs from this folder and skip build_dataset",
     )
+    parser.add_argument("--xml_dirs", nargs="+", help="XML annotation dirs (if no --data_dir)")
+    parser.add_argument("--susp_dirs", nargs="+", help="Suspicious-docs dirs (if no --data_dir)")
+    parser.add_argument("--src_dirs", nargs="+", help="Source-docs dirs (if no --data_dir)")
     parser.add_argument(
-        "--xml_dirs", nargs="+", default=None, help="Liste des XML dirs si data_dir non fourni"
+        "--neg_pool_dirs", nargs="*", default=None, help="Extra negative pool dirs"
     )
-    parser.add_argument(
-        "--susp_dirs", nargs="+", default=None, help="Liste des suspicious dirs si data_dir non fourni"
-    )
-    parser.add_argument(
-        "--src_dirs", nargs="+", default=None, help="Liste des source dirs si data_dir non fourni"
-    )
-    parser.add_argument(
-        "--neg_pool_dirs", nargs="*", default=None, help="Liste des neg pool dirs"
-    )
-    parser.add_argument("--out_dir", required=True, help="Répertoire de sortie")
+    parser.add_argument("--out_dir", required=True, help="Output folder for CSVs & model")
     parser.add_argument("--batch_size", type=int, default=16)
     parser.add_argument("--lr", type=float, default=3e-5)
-    parser.add_argument("--epochs", type=int, default=15)
+    parser.add_argument("--epochs", type=int, default=10)
     parser.add_argument("--max_len", type=int, default=128)
     parser.add_argument("--neg_length", type=int, default=50)
     parser.add_argument("--neg_ratio", type=float, default=2.0)
@@ -101,16 +110,20 @@ def main():
 
     args = parser.parse_args()
 
+    # Load or build dataset
     if args.data_dir:
+        print(f"→ CHARGEMENT DIRECT DES CSV depuis '{args.data_dir}'", flush=True)
         paths = {
             "train": os.path.join(args.data_dir, "train.csv"),
             "val":   os.path.join(args.data_dir, "val.csv"),
             "test":  os.path.join(args.data_dir, "test.csv"),
         }
-        print(f"→ CHARGEMENT DIRECT DES CSV depuis '{args.data_dir}'", flush=True)
     else:
         if not (args.xml_dirs and args.susp_dirs and args.src_dirs):
-            parser.error("Si --data_dir non fourni, --xml_dirs, --susp_dirs et --src_dirs sont requis.")
+            parser.error(
+                "Si --data_dir non fourni, "
+                "--xml_dirs, --susp_dirs et --src_dirs sont requis"
+            )
         print("→ BUILDING DATASET", flush=True)
         paths = build_dataset(
             xml_dirs=args.xml_dirs,
@@ -126,16 +139,22 @@ def main():
             random_state=args.random_state,
         )
 
+    # Data loaders
     print("→ INITIALIZING DATA LOADERS", flush=True)
     ds_train = ArabicPlagiarismCSVDataset(paths["train"], max_len=args.max_len)
     ds_val   = ArabicPlagiarismCSVDataset(paths["val"],   max_len=args.max_len)
 
     n_pos = (ds_train.df["label"] == 1).sum()
     n_neg = (ds_train.df["label"] == 0).sum()
-    print(f"  ✅ Train set: {len(ds_train)} examples → {n_pos} positives / {n_neg} negatives", flush=True)
+    print(
+        f"  ✅ Train set: {len(ds_train)} examples → {n_pos} positives / {n_neg} negatives",
+        flush=True,
+    )
 
     labels = ds_train.df["label"].values.astype(int)
-    class_counts  = torch.bincount(torch.tensor(labels))
+    class_counts = torch.bincount(torch.tensor(labels))
+    pos_weight = class_counts[0].float() / class_counts[1].float()
+
     class_weights = 1.0 / class_counts.float()
     sample_weights = class_weights[torch.tensor(labels)]
     sampler = WeightedRandomSampler(sample_weights, num_samples=len(sample_weights), replacement=True)
@@ -143,6 +162,7 @@ def main():
     train_loader = DataLoader(ds_train, batch_size=args.batch_size, sampler=sampler)
     val_loader   = DataLoader(ds_val,   batch_size=args.batch_size)
 
+    # Model, optimizer, scheduler, loss
     print("→ LOADING MODEL", flush=True)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model  = PlagiarismDetector().to(device)
@@ -156,13 +176,15 @@ def main():
         num_warmup_steps=int(0.1 * total_steps),
         num_training_steps=total_steps,
     )
-    pos_weight = class_counts[0] / class_counts[1]
-    criterion  = torch.nn.BCEWithLogitsLoss(pos_weight=pos_weight.to(device))
 
+    criterion = FocalLoss(alpha=pos_weight.item(), gamma=2.0)
+
+    # Training loop
     best_f1 = 0.0
     for epoch in range(1, args.epochs + 1):
         print(f"[Epoch {epoch}/{args.epochs}]", flush=True)
 
+        # Freeze/unfreeze BERT
         if epoch == 1:
             for p in model.bert.parameters():
                 p.requires_grad = False
@@ -191,16 +213,6 @@ def main():
             f"time={(time.time() - t0):.1f}s",
             flush=True,
         )
-
-        # --- Sauvegarde des FP / FN de la validation ---
-        df_val = ds_val.df.copy()
-        df_val["prob"]  = probs
-        df_val["pred"]  = preds_opt
-        df_val["label"] = labels
-        fp_df = df_val[(df_val["pred"] == 1) & (df_val["label"] == 0)]
-        fn_df = df_val[(df_val["pred"] == 0) & (df_val["label"] == 1)]
-        fp_df.to_csv(os.path.join(args.out_dir, f"fp_epoch{epoch}.csv"), index=False, encoding="utf-8")
-        fn_df.to_csv(os.path.join(args.out_dir, f"fn_epoch{epoch}.csv"), index=False, encoding="utf-8")
 
         scheduler.step()
         if best_f1_thresh > best_f1:
